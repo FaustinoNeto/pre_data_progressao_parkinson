@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from gera_grafico import plot_missing_values
 
 
 # --------------------------------------
@@ -41,9 +42,38 @@ def integrate_data(peptides, proteins, clinical_data, supplemental_clinical_data
         on=['visit_id', 'patient_id'],
         how='left'
     )
-
     return full_data
 
+
+def handle_missing_values(df):
+    # Remover As Colunas visit_id, visit_month_peptide, visit_month_protein
+    df = df.drop(
+        columns=['visit_id', 'visit_month_peptide', 'visit_month_protein'])
+
+    plot_missing_values(df, "Valores Ausentes no DataFrame")
+
+    # Preenchimento Temporal dos Valores Ausentes
+    df['upd23b_clinical_state_on_medication'] = df.groupby(['patient_id', 'visit_month'])[
+        'upd23b_clinical_state_on_medication'].ffill().bfill()
+    # Se ainda houver Valores Ausentes, Preencher com 'Desconhecido'
+    df['upd23b_clinical_state_on_medication'].fillna(
+        'Desconhecido', inplace=True)
+
+    df['updrs_4'] = df.groupby('patient_id')['updrs_4'].ffill().bfill()
+    df['updrs_4'].fillna(df['updrs_4'].median(), inplace=True)
+    df['updrs_4_missing'] = df['updrs_4'].isna().astype(int)
+
+    plot_missing_values(df, "Valores Ausentes no DataFrame Atualizado")
+    df.dropna(inplace=True)
+    return df
+
+
+def duplicata_rows(df):
+    # Verificar se há linhas duplicadas
+    print(f"Linhas duplicadas: {df.duplicated().sum()}")
+    # Remover linhas duplicadas
+    df = df.drop_duplicates()
+    return df
 # --------------------------------------
 # Pipeline Principal
 # --------------------------------------
@@ -56,9 +86,16 @@ def main():
     # Integração
     combined_data = integrate_data(
         peptides, proteins, clinical_data, supplemental_data)
+    print(combined_data.info())
+    print(combined_data[['visit_id', 'patient_id', 'visit_month_protein',
+          'visit_month_peptide', 'visit_month']].head())
 
-    pd.set_option('display.max_columns', None)
-    print(combined_data.head())
+    # Tratamento de valores ausentes
+    combined_data = handle_missing_values(combined_data)
+    print(combined_data.info())
+
+    # Remover linhas duplicadas
+    combined_data = duplicata_rows(combined_data)
 
 
 if __name__ == "__main__":
