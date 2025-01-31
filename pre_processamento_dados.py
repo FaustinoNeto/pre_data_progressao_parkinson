@@ -4,6 +4,7 @@ from gera_grafico import plot_missing_values
 import numpy as np
 from scipy.stats import zscore
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 def load_data():
@@ -95,6 +96,17 @@ def detect_outliers(df, threshold=3):
     return df
 
 
+def correlation_analysis(df):
+    # Selecionar apenas colunas numéricas
+    numerical_cols = df.select_dtypes(include=np.number).columns
+    correlation_matrix = df[numerical_cols].corr()
+
+    # Criar o heatmap da matriz de correlação
+    plt.figure(figsize=(12, 8))
+    sns.heatmap(correlation_matrix, annot=False,
+                cmap="coolwarm", linewidths=0.5)
+    plt.title("Matriz de Correlação das Variáveis")
+    plt.show()
 # --------------------------------------
 # Pipeline Principal
 # --------------------------------------
@@ -123,6 +135,9 @@ def main():
 
     # Detecção de Outliers
     combined_data = detect_outliers(combined_data)
+
+    # Análise de Correlação
+    correlation_analysis(combined_data)
 
 
 if __name__ == "__main__":
