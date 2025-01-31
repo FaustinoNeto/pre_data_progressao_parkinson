@@ -1,11 +1,10 @@
 import os
 import pandas as pd
 from gera_grafico import plot_missing_values
+import numpy as np
+from scipy.stats import zscore
+import matplotlib.pyplot as plt
 
-
-# --------------------------------------
-# 1. Carregamento e Análise Exploratória
-# --------------------------------------
 
 def load_data():
     base_path = os.path.dirname(os.path.abspath(__file__))
@@ -17,10 +16,6 @@ def load_data():
         os.path.join(base_path, "supplemental_clinical_data.csv"))
 
     return train_peptides, train_proteins, train_clinical_data, supplemental_clinical_data
-
-# --------------------------------------
-# 2. Integração de Dados com Merge Seguro
-# --------------------------------------
 
 
 def integrate_data(peptides, proteins, clinical_data, supplemental_clinical_data):
@@ -74,6 +69,32 @@ def duplicata_rows(df):
     # Remover linhas duplicadas
     df = df.drop_duplicates()
     return df
+
+
+def create_temporal_features(df):
+    df = df.sort_values(['patient_id', 'visit_month'])
+    updrs_cols = ['updrs_1', 'updrs_2', 'updrs_3', 'updrs_4']
+    for col in updrs_cols:
+        df[f'{col}_lag1'] = df.groupby('patient_id')[col].shift(1)
+    df['months_since_last_visit'] = df.groupby(
+        'patient_id')['visit_month'].diff()
+    return df
+
+
+def detect_outliers(df, threshold=3):
+    numerical_cols = df.select_dtypes(include=np.number).columns
+    z_scores = np.abs(df[numerical_cols].apply(zscore))
+    df["outlier"] = (z_scores > threshold).any(axis=1)
+
+    # calcular a porcentagem  de outliers
+    num_outliers = df["outlier"].sum()
+    total_rows = len(df)
+    outlier_percentage = (num_outliers / total_rows) * 100
+
+    print(f"Porcentagem de outliers: {outlier_percentage:.2f}%")
+    return df
+
+
 # --------------------------------------
 # Pipeline Principal
 # --------------------------------------
@@ -96,6 +117,12 @@ def main():
 
     # Remover linhas duplicadas
     combined_data = duplicata_rows(combined_data)
+
+    # Engenharia de Recursos Temporais
+    combined_data = create_temporal_features(combined_data)
+
+    # Detecção de Outliers
+    combined_data = detect_outliers(combined_data)
 
 
 if __name__ == "__main__":
