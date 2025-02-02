@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from gera_grafico import plot_missing_values
+from gera_grafico import plot
 import numpy as np
 from scipy.stats import zscore
 import matplotlib.pyplot as plt
@@ -38,29 +38,44 @@ def integrate_data(peptides, proteins, clinical_data, supplemental_clinical_data
         on=['visit_id', 'patient_id'],
         how='left'
     )
+    full_data.fillna('')  # Preenche valores ausentes com string vazia
+    full_data.sort_values(['patient_id', 'visit_month'], inplace=True)
+    full_data.drop(columns=['visit_id', 'visit_month_protein',
+                            'visit_month'], inplace=True)
+
+    # Renomeia a coluna upd23b_clinical_state_on_medication para updrs_3_medication
+    full_data.rename(columns={
+                     'upd23b_clinical_state_on_medication': 'updrs_3_medication',
+                     'visit_month_peptide': 'visit_month'}, inplace=True)
+
+    print(full_data.info())   # Exibe informações sobre o DataFrame
     return full_data
 
 
 def handle_missing_values(df):
-    # Remover As Colunas visit_id, visit_month_peptide, visit_month_protein
-    df = df.drop(
-        columns=['visit_id', 'visit_month_peptide', 'visit_month_protein'])
+    # Verificar valores ausentes
+    missing_values = df.isnull().sum()
 
-    plot_missing_values(df, "Valores Ausentes no DataFrame")
+    # Calcular a porcentagem de valores ausentes por coluna
+    missing_percentage = (missing_values / len(df)) * 100
+    missing_percentage = missing_percentage[missing_percentage > 0]
 
-    # Preenchimento Temporal dos Valores Ausentes
-    df['upd23b_clinical_state_on_medication'] = df.groupby(['patient_id', 'visit_month'])[
-        'upd23b_clinical_state_on_medication'].ffill().bfill()
-    # Se ainda houver Valores Ausentes, Preencher com 'Desconhecido'
-    df['upd23b_clinical_state_on_medication'].fillna(
-        'Desconhecido', inplace=True)
+    # Plotar a porcentagem de valores ausentes por coluna
+    missing_percentage.plot(
+        kind='bar', title="Porcentagem de valores ausentes por coluna")
+    plt.ylabel('Porcentagem de Valores Ausentes')
+    plt.show()
 
-    df['updrs_4'] = df.groupby('patient_id')['updrs_4'].ffill().bfill()
-    df['updrs_4'].fillna(df['updrs_4'].median(), inplace=True)
-    df['updrs_4_missing'] = df['updrs_4'].isna().astype(int)
+    # Contar patient_id com valores ausentes
+    missing_patient_id = df['patient_id'].isnull().sum()
+    print(f"patient_id com valores ausentes: {missing_patient_id}")
 
-    plot_missing_values(df, "Valores Ausentes no DataFrame Atualizado")
-    df.dropna(inplace=True)
+    # Conta o total de pacientes
+    total_patients = df['patient_id'].nunique()
+    print(f"Total de pacientes: {total_patients}")
+
+    df.fillna({'updrs_3_medication': 'Desconhecido'}, inplace=True)
+    df.to_csv('combined_data.csv', index=False)
     return df
 
 
@@ -119,25 +134,21 @@ def main():
     # Integração
     combined_data = integrate_data(
         peptides, proteins, clinical_data, supplemental_data)
-    print(combined_data.info())
-    print(combined_data[['visit_id', 'patient_id', 'visit_month_protein',
-          'visit_month_peptide', 'visit_month']].head())
 
     # Tratamento de valores ausentes
     combined_data = handle_missing_values(combined_data)
-    print(combined_data.info())
-
+    
     # Remover linhas duplicadas
-    combined_data = duplicata_rows(combined_data)
+    # combined_data = duplicata_rows(combined_data)
 
     # Engenharia de Recursos Temporais
-    combined_data = create_temporal_features(combined_data)
+    # combined_data = create_temporal_features(combined_data)
 
     # Detecção de Outliers
-    combined_data = detect_outliers(combined_data)
+    # combined_data = detect_outliers(combined_data)
 
     # Análise de Correlação
-    correlation_analysis(combined_data)
+    # correlation_analysis(combined_data)
 
 
 if __name__ == "__main__":

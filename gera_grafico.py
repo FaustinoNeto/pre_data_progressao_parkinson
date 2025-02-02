@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 
-def plot_missing_values(df, title):
+def plot(df, title):
     # Contar valores ausentes para cada coluna e gerar um gráfico de barras com a quantidade de valores ausentes por coluna (em porcentagem)
     missing_values = df.isnull().mean() * 100
     missing_values = missing_values[missing_values > 0]
