@@ -107,6 +107,30 @@ def correlation_analysis(df):
                 cmap="coolwarm", linewidths=0.5)
     plt.title("Matriz de Correlação das Variáveis")
     plt.show()
+
+def visualize_updrs_scores(df):
+    
+    # Filtra os dados para pacientes sem medicação
+    df = df[df["upd23b_clinical_state_on_medication"] == "Off"]
+
+    # Cria subplots
+    fig, axs = plt.subplots(nrows=4, ncols=1, figsize=(15, 25))
+    sns.set_style('darkgrid')
+    axs = axs.flatten()
+
+    # Plota cada feature UPDRS
+    for x, feature in enumerate(["updrs_1", "updrs_2", "updrs_3", "updrs_4"]):
+        ax = axs[x]
+        sns.boxplot(data=df, x="visit_month", y=feature, ax=ax)
+        sns.pointplot(data=df, x="visit_month", y=feature, color="r", errorbar=None, linestyle=":", ax=ax)
+        ax.set_title(f"UPDRS Part {x+1} Scores by Month while OFF Medication", fontsize=15)
+        ax.set_xlabel("Visit Month")
+        ax.set_ylabel("Score")
+        ax.legend(['Mean Score'], loc='upper right')
+
+    # Ajusta o layout
+    plt.tight_layout()
+    plt.show()
 # --------------------------------------
 # Pipeline Principal
 # --------------------------------------
@@ -138,6 +162,9 @@ def main():
 
     # Análise de Correlação
     correlation_analysis(combined_data)
+
+    # Visualize UPDRS scores
+    visualize_updrs_scores(combined_data)
 
 
 if __name__ == "__main__":
