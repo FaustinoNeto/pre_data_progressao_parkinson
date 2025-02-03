@@ -248,6 +248,22 @@ def process_and_visualize_correlation(train_df, supp_df):
 
     return q3_train_corr, q3_supp_corr
 
+def correlation_clinical_updrs(clinical_data):
+    # Selecionar colunas numéricas e de interesse
+    numerical_cols = clinical_data.select_dtypes(include=np.number).columns
+    updrs_cols = ['updrs_1', 'updrs_2', 'updrs_3', 'updrs_4']
+    
+    # Calcular a correlação
+    correlation = clinical_data[numerical_cols].corr()
+    
+    # Plotar heatmap
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(correlation, annot=True, cmap='coolwarm', fmt=".2f")
+    plt.title("Correlação entre Variáveis Clínicas e scores UPDRS")
+    plt.show()
+    
+    return correlation
+
 # --------------------------------------
 # Pipeline Principal
 # --------------------------------------
@@ -283,7 +299,8 @@ def main():
     )
     # Visualize UPDRS scores
     visualize_updrs_scores(combined_data)
-
+# Análise de Correlação
+    correlation_clinical_updrs(clinical_data)
 
 if __name__ == "__main__":
     main()
