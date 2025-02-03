@@ -191,7 +191,7 @@ def process_and_visualize_correlation(train_df, supp_df):
     ax.spines['top'].set_visible(True)
 
     # Título
-    fig.text(0.97, 1, 'Correlation Heatmap Visualization for Training Dataset',
+    fig.text(0.97, 1, 'Visualização de mapa de calor de correlação para conjunto de dados de treinamento',
              fontweight='bold', fontfamily='serif', fontsize=10, ha='right')
     plt.show()
 
