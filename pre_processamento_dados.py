@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from gera_grafico import plot
+from gera_grafico import plot_missing_values
 import numpy as np
 from scipy.stats import zscore
 import matplotlib.pyplot as plt
@@ -38,7 +38,14 @@ def integrate_data(peptides, proteins, clinical_data, supplemental_clinical_data
         on=['visit_id', 'patient_id'],
         how='left'
     )
-    full_data.fillna('')  # Preenche valores ausentes com string vazia
+
+    # Lista de colunas categóricas que podem receber fillna('')
+    categorical_cols = ['visit_id', 'UniProt',
+                        'Peptide']
+
+    # Aplicar fillna('') apenas nessas colunas
+    full_data[categorical_cols] = full_data[categorical_cols].fillna('')
+
     full_data.sort_values(['patient_id', 'visit_month'], inplace=True)
     full_data.drop(columns=['visit_id', 'visit_month_protein',
                             'visit_month'], inplace=True)
@@ -53,29 +60,64 @@ def integrate_data(peptides, proteins, clinical_data, supplemental_clinical_data
 
 
 def handle_missing_values(df):
-    # Verificar valores ausentes
-    missing_values = df.isnull().sum()
+    # Verifica se há valores ausentes antes de plotar
+    if df.isnull().sum().sum() > 0 and 'plot_missing_values' in globals():
+        plot_missing_values(df, "Porcentagem de valores ausentes por coluna")
 
-    # Calcular a porcentagem de valores ausentes por coluna
-    missing_percentage = (missing_values / len(df)) * 100
-    missing_percentage = missing_percentage[missing_percentage > 0]
-
-    # Plotar a porcentagem de valores ausentes por coluna
-    missing_percentage.plot(
-        kind='bar', title="Porcentagem de valores ausentes por coluna")
-    plt.ylabel('Porcentagem de Valores Ausentes')
-    plt.show()
+    # Preencher valores ausentes na coluna updrs_3_medication com 'Desconhecido' (se existir)
+    if 'updrs_3_medication' in df.columns:
+        df['updrs_3_medication'] = df['updrs_3_medication'].fillna(
+            'Desconhecido')
 
     # Contar patient_id com valores ausentes
-    missing_patient_id = df['patient_id'].isnull().sum()
-    print(f"patient_id com valores ausentes: {missing_patient_id}")
+    if 'patient_id' in df.columns:
+        missing_patient_id = df['patient_id'].isnull().sum()
+        print(f"patient_id com valores ausentes: {missing_patient_id}")
 
-    # Conta o total de pacientes
-    total_patients = df['patient_id'].nunique()
-    print(f"Total de pacientes: {total_patients}")
+        # Conta o total de pacientes
+        total_patients = df['patient_id'].nunique()
+        print(f"Total de pacientes: {total_patients}")
 
-    df.fillna({'updrs_3_medication': 'Desconhecido'}, inplace=True)
-    df.to_csv('combined_data.csv', index=False)
+    # Verificar se há valores ausentes no DataFrame inteiro
+    missing_values = df.isnull().sum().sum()
+    print(f"Total de valores ausentes restantes: {missing_values}")
+
+    # Plotar apenas se ainda houver valores ausentes
+    if missing_values > 0 and 'plot_missing_values' in globals():
+        plot_missing_values(
+            df, "Porcentagem de valores ausentes - Após tratamento")
+
+    # Imputação numérica (mediana) para colunas updrs_1, updrs_2, updrs_3 (se existirem)
+    for col in ['updrs_1', 'updrs_2', 'updrs_3']:
+        if col in df.columns:
+            df[col] = df.groupby('patient_id')[col].transform(
+                lambda x: x.fillna(x.median()) if not x.dropna().empty else x)
+
+    # Plotar após imputação se ainda houver valores ausentes
+    if df.isnull().sum().sum() > 0 and 'plot_missing_values' in globals():
+        plot_missing_values(
+            df, "Porcentagem de valores ausentes - Após tratamento updrs 1 ao 3")
+
+    # Criar um indicador de missing para updrs_4 (se existir)
+    if 'updrs_4' in df.columns:
+        df['updrs_4_missing'] = df['updrs_4'].isna().astype(int)
+
+        # Imputar pela Mediana do Próprio Paciente
+        df['updrs_4'] = df.groupby('patient_id')['updrs_4'].transform(
+            lambda x: x.fillna(x.median()) if not x.dropna().empty else x)
+
+        # Imputar pela Mediana Global
+        if 'updrs_4' in df.columns:
+            df['updrs_4'] = df['updrs_4'].fillna(df['updrs_4'].median())
+
+        # Plotar apenas se ainda houver valores ausentes
+        if df.isnull().sum().sum() > 0 and 'plot_missing_values' in globals():
+            plot_missing_values(
+                df, "Porcentagem de valores ausentes - Após tratamento updrs_4")
+
+    # Salvar o DataFrame tratado
+    df.to_csv('base_de_dados_tratada.csv', index=False)
+
     return df
 
 
@@ -123,10 +165,11 @@ def correlation_analysis(df):
     plt.title("Matriz de Correlação das Variáveis")
     plt.show()
 
+
 def visualize_updrs_scores(df):
-    
+
     # Filtra os dados para pacientes sem medicação
-    df = df[df["upd23b_clinical_state_on_medication"] == "Off"]
+    df = df[df["updrs_3_medication"] == "Off"]
 
     # Cria subplots
     fig, axs = plt.subplots(nrows=4, ncols=1, figsize=(15, 25))
@@ -137,8 +180,10 @@ def visualize_updrs_scores(df):
     for x, feature in enumerate(["updrs_1", "updrs_2", "updrs_3", "updrs_4"]):
         ax = axs[x]
         sns.boxplot(data=df, x="visit_month", y=feature, ax=ax)
-        sns.pointplot(data=df, x="visit_month", y=feature, color="r", errorbar=None, linestyle=":", ax=ax)
-        ax.set_title(f"UPDRS Part {x+1} Scores by Month while OFF Medication", fontsize=15)
+        sns.pointplot(data=df, x="visit_month", y=feature,
+                      color="r", errorbar=None, linestyle=":", ax=ax)
+        ax.set_title(
+            f"UPDRS Part {x+1} Scores by Month while OFF Medication", fontsize=15)
         ax.set_xlabel("Visit Month")
         ax.set_ylabel("Score")
         ax.legend(['Mean Score'], loc='upper right')
@@ -161,18 +206,18 @@ def main():
 
     # Tratamento de valores ausentes
     combined_data = handle_missing_values(combined_data)
-    
+
     # Remover linhas duplicadas
-    # combined_data = duplicata_rows(combined_data)
+    combined_data = duplicata_rows(combined_data)
 
     # Engenharia de Recursos Temporais
-    # combined_data = create_temporal_features(combined_data)
+    combined_data = create_temporal_features(combined_data)
 
     # Detecção de Outliers
-    # combined_data = detect_outliers(combined_data)
+    combined_data = detect_outliers(combined_data)
 
     # Análise de Correlação
-    # correlation_analysis(combined_data)
+    correlation_analysis(combined_data)
 
     # Visualize UPDRS scores
     visualize_updrs_scores(combined_data)
