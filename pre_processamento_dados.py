@@ -126,10 +126,10 @@ def correlation_analysis(df):
 def visualize_updrs_scores(df):
     
     # Filtra os dados para pacientes sem medicação
-    df = df[df["upd23b_clinical_state_on_medication"] == "Off"]
+    df = df[df["updrs_3_medication"] == "Off"]
 
     # Cria subplots
-    fig, axs = plt.subplots(nrows=4, ncols=1, figsize=(15, 25))
+    fig, axs = plt.subplots(nrows=4, ncols=1, figsize=(15, 20))
     sns.set_style('darkgrid')
     axs = axs.flatten()
 
@@ -138,14 +138,65 @@ def visualize_updrs_scores(df):
         ax = axs[x]
         sns.boxplot(data=df, x="visit_month", y=feature, ax=ax)
         sns.pointplot(data=df, x="visit_month", y=feature, color="r", errorbar=None, linestyle=":", ax=ax)
-        ax.set_title(f"UPDRS Part {x+1} Scores by Month while OFF Medication", fontsize=15)
-        ax.set_xlabel("Visit Month")
+        ax.set_title(f"UPDRS Parte {x+1} score mensal de pacientes sem medicação", fontsize=15)
+        ax.set_xlabel("Visita Mês")
         ax.set_ylabel("Score")
         ax.legend(['Mean Score'], loc='upper right')
 
     # Ajusta o layout
     plt.tight_layout()
     plt.show()
+
+
+def process_and_visualize_correlation(train_df, supp_df):
+    
+    q3_train_clinical_df = train_df[['updrs_1', 'updrs_2', 'updrs_3', 'updrs_4']].dropna()
+
+    # Processamento dos dados suplementares
+    q3_supp_clinical_df = supp_df.dropna(subset=['upd23b_clinical_state_on_medication', 'updrs_3', 'updrs_4'])[
+        ['updrs_1', 'updrs_2', 'updrs_3', 'updrs_4']
+    ]
+
+    # Calcula as matrizes de correlação
+    q3_train_corr = q3_train_clinical_df.corr()
+    q3_supp_corr = q3_supp_clinical_df.corr()
+
+    # Visualização do heatmap
+    sns.color_palette(sns.diverging_palette(230, 20))
+    fig, ax = plt.subplots(1, 1, figsize=(7, 7))
+
+    # Máscara para ocultar valores superiores da matriz
+    mask = np.zeros_like(q3_train_corr, dtype=bool)
+    mask[np.triu_indices_from(mask)] = True
+
+    # Mapa de cores divergente
+    cmap = sns.diverging_palette(230, 20, as_cmap=True)
+
+    sns.heatmap(
+        q3_train_corr,
+        square=True,
+        mask=mask,
+        linewidth=2.5,
+        vmax=0.4,
+        vmin=-0.4,
+        cmap=cmap,
+        cbar=False,
+        ax=ax
+    )
+
+    # Configuração dos rótulos
+    ax.set_yticklabels(ax.get_xticklabels(), fontfamily='serif', rotation=0, fontsize=11)
+    ax.set_xticklabels(ax.get_xticklabels(), fontfamily='serif', rotation=90, fontsize=11)
+
+    ax.spines['top'].set_visible(True)
+
+    # Título
+    fig.text(0.97, 1, 'Correlation Heatmap Visualization for Training Dataset',
+             fontweight='bold', fontfamily='serif', fontsize=10, ha='right')
+    plt.show()
+
+    return q3_train_corr, q3_supp_corr
+
 # --------------------------------------
 # Pipeline Principal
 # --------------------------------------
@@ -174,6 +225,11 @@ def main():
     # Análise de Correlação
     # correlation_analysis(combined_data)
 
+
+    # Processar e visualizar correlações
+    train_corr, supp_corr = process_and_visualize_correlation(
+        clinical_data, supplemental_data
+    )
     # Visualize UPDRS scores
     visualize_updrs_scores(combined_data)
 
