@@ -180,17 +180,11 @@ def visualize_updrs_scores(df):
     for x, feature in enumerate(["updrs_1", "updrs_2", "updrs_3", "updrs_4"]):
         ax = axs[x]
         sns.boxplot(data=df, x="visit_month", y=feature, ax=ax)
-<<<<<<< HEAD
         sns.pointplot(data=df, x="visit_month", y=feature,
                       color="r", errorbar=None, linestyle=":", ax=ax)
         ax.set_title(
             f"UPDRS Part {x+1} Scores by Month while OFF Medication", fontsize=15)
         ax.set_xlabel("Visit Month")
-=======
-        sns.pointplot(data=df, x="visit_month", y=feature, color="r", errorbar=None, linestyle=":", ax=ax)
-        ax.set_title(f"UPDRS Parte {x+1} score mensal de pacientes sem medicação", fontsize=15)
-        ax.set_xlabel("Visita Mês")
->>>>>>> 130cfa9 (Correlação entre diferentes tipos de sintomas)
         ax.set_ylabel("Score")
         ax.legend(['Mean Score'], loc='upper right')
 
