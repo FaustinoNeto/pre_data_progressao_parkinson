@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from gera_grafico import plot_missing_values
+from pre_data_progressao_parkinson.gera_grafico import plot_missing_values
 import numpy as np
 from scipy.stats import zscore
 import matplotlib.pyplot as plt
@@ -60,7 +60,7 @@ def integrate_data(peptides, proteins, clinical_data, supplemental_clinical_data
 
 
 def handle_missing_values(df):
-    # Verifica se há valores ausentes antes de plotar
+    # Verifica se há valores ausentes
     if df.isnull().sum().sum() > 0 and 'plot_missing_values' in globals():
         plot_missing_values(df, "Porcentagem de valores ausentes por coluna")
 
@@ -91,7 +91,7 @@ def handle_missing_values(df):
     for col in ['updrs_1', 'updrs_2', 'updrs_3']:
         if col in df.columns:
             df[col] = df.groupby('patient_id')[col].transform(
-                lambda x: x.fillna(x.median()) if not x.dropna().empty else x)
+                lambda x: x.fillna(x.median()))
 
     # Plotar após imputação se ainda houver valores ausentes
     if df.isnull().sum().sum() > 0 and 'plot_missing_values' in globals():
@@ -104,7 +104,7 @@ def handle_missing_values(df):
 
         # Imputar pela Mediana do Próprio Paciente
         df['updrs_4'] = df.groupby('patient_id')['updrs_4'].transform(
-            lambda x: x.fillna(x.median()) if not x.dropna().empty else x)
+            lambda x: x.fillna(x.median()) if not x.dropna().empty else x.median())
 
         # Imputar pela Mediana Global
         if 'updrs_4' in df.columns:
@@ -194,8 +194,9 @@ def visualize_updrs_scores(df):
 
 
 def process_and_visualize_correlation(train_df, supp_df):
-    
-    q3_train_clinical_df = train_df[['updrs_1', 'updrs_2', 'updrs_3', 'updrs_4']].dropna()
+
+    q3_train_clinical_df = train_df[['updrs_1',
+                                     'updrs_2', 'updrs_3', 'updrs_4']].dropna()
 
     # Processamento dos dados suplementares
     q3_supp_clinical_df = supp_df.dropna(subset=['upd23b_clinical_state_on_medication', 'updrs_3', 'updrs_4'])[
@@ -230,8 +231,10 @@ def process_and_visualize_correlation(train_df, supp_df):
     )
 
     # Configuração dos rótulos
-    ax.set_yticklabels(ax.get_xticklabels(), fontfamily='serif', rotation=0, fontsize=11)
-    ax.set_xticklabels(ax.get_xticklabels(), fontfamily='serif', rotation=90, fontsize=11)
+    ax.set_yticklabels(ax.get_xticklabels(),
+                       fontfamily='serif', rotation=0, fontsize=11)
+    ax.set_xticklabels(ax.get_xticklabels(),
+                       fontfamily='serif', rotation=90, fontsize=11)
 
     ax.spines['top'].set_visible(True)
 
@@ -242,20 +245,21 @@ def process_and_visualize_correlation(train_df, supp_df):
 
     return q3_train_corr, q3_supp_corr
 
+
 def correlation_clinical_updrs(clinical_data):
     # Selecionar colunas numéricas e de interesse
     numerical_cols = clinical_data.select_dtypes(include=np.number).columns
     updrs_cols = ['updrs_1', 'updrs_2', 'updrs_3', 'updrs_4']
-    
+
     # Calcular a correlação
     correlation = clinical_data[numerical_cols].corr()
-    
+
     # Plotar heatmap
     plt.figure(figsize=(10, 8))
     sns.heatmap(correlation, annot=True, cmap='coolwarm', fmt=".2f")
     plt.title("Correlação entre Variáveis Clínicas e scores UPDRS")
     plt.show()
-    
+
     return correlation
 
 # --------------------------------------
@@ -286,15 +290,15 @@ def main():
     # Análise de Correlação
     correlation_analysis(combined_data)
 
-
     # Processar e visualizar correlações
     train_corr, supp_corr = process_and_visualize_correlation(
         clinical_data, supplemental_data
     )
     # Visualize UPDRS scores
     visualize_updrs_scores(combined_data)
-# Análise de Correlação
+    # Análise de Correlação
     correlation_clinical_updrs(clinical_data)
+
 
 if __name__ == "__main__":
     main()

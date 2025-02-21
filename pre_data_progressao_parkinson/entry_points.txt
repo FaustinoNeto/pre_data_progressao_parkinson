@@ -1,0 +1,2 @@
+[console_scripts]
+run_parkinson = pre_data_progressao_parkinson.cli:main

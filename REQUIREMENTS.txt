@@ -1,0 +1,44 @@
+# =============================================================================
+# Arquivo: requirements.txt
+# =============================================================================
+# Este arquivo reúne as bibliotecas necessárias para executar o projeto 
+# "Pipeline e Modelagem para Progressão da Doença de Parkinson" e também 
+# fornece instruções de instalação, uso e execução do código.
+#
+# =============================================================================
+# Como instalar
+# =============================================================================
+# 1. Crie e ative um ambiente virtual (recomendado):
+#    python -m venv venv
+#    source venv/bin/activate       (Linux/Mac)
+#    venv\Scripts\activate.bat      (Windows)
+#
+# 2. Instale as dependências:
+#    pip install -r requirements.txt
+#
+# 3. (Opcional) Instale o pacote para criar um script de linha de comando:
+#    pip install .
+#    --> Isso habilitará o comando: run_parkinson
+#
+# =============================================================================
+# Como executar
+# =============================================================================
+# - Se você instalou o pacote via setup.py:
+#    run_parkinson
+#   Esse comando executa o pipeline de pré-processamento e gera o arquivo
+#   base_de_dados_tratada.csv com os dados prontos para análise ou modelagem.
+#
+# - Se preferir rodar diretamente pelo script:
+#    python pre_processamento_dados.py
+#   Esse comando executa as mesmas etapas de pré-processamento dos dados.
+#
+# =============================================================================
+# Dependências
+# =============================================================================
+
+pandas==1.5.3
+numpy==1.24.2
+matplotlib==3.7.1
+seaborn==0.12.2
+scikit-learn==1.2.1
+xgboost==1.7.4

@@ -1,0 +1,18 @@
+Metadata-Version: 2.2
+Name: pre_data_progressao_parkinson
+Version: 0.1
+Summary: Pipeline e modelagem para a progressão da Doença de Parkinson
+Author: Seu Nome
+Author-email: seu.email@exemplo.com
+Classifier: Programming Language :: Python :: 3
+Requires-Dist: pandas
+Requires-Dist: numpy
+Requires-Dist: matplotlib
+Requires-Dist: seaborn
+Requires-Dist: scikit-learn
+Requires-Dist: xgboost
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: requires-dist
+Dynamic: summary
